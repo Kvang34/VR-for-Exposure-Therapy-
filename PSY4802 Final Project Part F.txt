@@ -1,0 +1,135 @@
+---
+title: "PSY4802 Final Project"
+author: "Kasia Vang"
+date: "2024-12-06"
+output: html_document
+---
+
+## VR for Exposure Therapy 
+
+Main research questions: Can virtual reality be an effective tool for exposure therapy?
+
+1. Does virtual reality reduce anxiety?
+2. Do people without acrophobia have lower anxiety levels compared to those who have acrophobia? 
+3. Does anxiety level differ between individual with and without acrophobia? 
+
+```{r}
+VR_Therapy_Dataset <- read.csv("C:/Users/vang3434/Downloads/VR_Therapy_Dataset.csv", header=TRUE)
+
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+colnames(VR_Therapy_Dataset)
+vrtherapyDat <- VR_Therapy_Dataset %>%
+  rename(
+    age = AGE.IN_YRS.,
+    gender = GENDER, 
+    colorblindness = COLOR.BLINDNESS,
+    visualimpairment = VISUAL.IMPAIRMENT,
+    specs = DO.YOU.WEAR.SPECS,
+    anxiousinSit = DO.YOU.BECOME.ANXIOUS.IN.SITUATIONS,
+    medication = DO.YOU.TAKE.MEDICATIONS.FOR.ANXIETY,
+    meditate = DO.YOU.PRACTICE.YOGA.MEDITATION, 
+    acrophobia = ARE.YOU.AFRAID.OF.HEIGHTS,
+    bp = DO.YOU.HAVE.BP.ISSUES,
+    systolic = SYSTOLIC,
+    diastolic = DIASTOLIC,
+    pulse = PULSE.P.MIN
+  ) %>%
+mutate(gender=recode(gender, 'F' = 0, 'M'= 1), 
+       colorblindness=recode(colorblindness, 'No' = 0, 'Yes'= 1), #Do you have color blindness?
+       visualimpairment=recode(visualimpairment, 'No' = 0, 'Yes' = 1), #Do you have visual impairment?
+       specs=recode(specs, 'No' = 0, 'Yes' = 1), #Do you wear specs?
+       anxiousinSit=recode(anxiousinSit, 'No' = 0, 'Yes' = 1), #Do you become anxious in situation?
+       medication=recode(medication, 'No' = 0, 'Yes' = 1), #DO you take medication?
+       meditate=recode(meditate, 'No' = 0, 'Yes' = 1), #Do you practice meditation?
+       acrophobia=recode(acrophobia, 'No' = 0, 'Yes' = 1), #Do you have acrophobia?
+       bp=recode(bp, 'No' = 0, 'Yes' = 1) #Do you have blood pressure problem?
+       ) %>%
+   filter(row_number() <= n()-4) #removed the extra rows
+
+```
+
+## Anxiety Level
+
+```{r}
+summary(vrtherapyDat$pulse)
+
+class(vrtherapyDat$pulse)
+vrtherapyDat$pulse <- as.numeric(vrtherapyDat$pulse)
+vrtherapyDat$pulse
+
+summary(vrtherapyDat$pulse)
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(vrtherapyDat, aes(pulse))+ geom_boxplot(fill="springgreen4", color= "black")+theme_classic()+labs(x= "Pulse (mmHg)", title = "Heart Rate After VR") 
+
+```
+
+```{r}
+
+questionDat <- vrtherapyDat %>% select("acrophobia", "I.FEEL.CALM":"I.FEEL.PLEASANT") %>% mutate(ID = C(1:60)) %>% relocate(ID)
+
+questionLonger <- pivot_longer(questionDat, cols= c(I.FEEL.CALM: I.FEEL.PLEASANT), names_to= "questions", values_to="response")
+
+```
+
+```{r}
+
+ggplot(questionLonger, aes(response))+geom_histogram( show.legend=FALSE, fill= "darkgreen")+facet_wrap(~questions)+labs(x="Level of Anxiety", y= "Frequency", title="Trait Anxiety Score of Participants")
+```
+
+1- 'Not at all'
+2- 'A little'
+3- 'Somewhat'
+4- 'Very much'
+
+
+The pulse is the measure of the force of the heart's pump.
+
+Based on the data, it tells us that after the exposure therapy, the pulse of the participants ranged from 60 and 94 The first quartile was 70, which indicate that 25% of the data fall below 70 mmHg. About half of that data fall below 84 mmHg. About 75% of the data fall below 80.37 mmhg. On average, the pulse of participant was `r mean(vrtherapyDat$pulse)` mmHg. This result indicated that there was an high level of anxiety. Despite so, many participants reported their level of anxiety as low.   
+
+## People Without Acrophobic have Lower Anxiety Level 
+
+```{r}
+
+noAcrophobiaDat <- vrtherapyDat%>% filter(acrophobia== 1)
+  
+t.test(noAcrophobiaDat$pulse, mu=0, alternative="less" )
+
+```
+
+Because the p-value is greater than 0.05, we have fail to reject the null hypothesis that people without acrophobia have a lower anxiety level. There is not enough evidence to support this idea.  
+
+We have a confidence interval of -inf and 82.63. This tells us that we are 95% confident that the true difference between the population mean falls between -inf and 82.63. 
+
+```{r}
+
+ggplot(noAcrophobiaDat, aes(pulse))+geom_histogram(fill="lightgreen")+theme_classic()+ labs(x= "Pulse (mmHg)", y= "Frequency", title= "Heart Rate of People without Acrophobia")
+
+```
+
+## Anxiety Level Between People with and without Acrophobia 
+
+```{r}
+
+t.test(pulse ~ acrophobia, data=vrtherapyDat)
+
+```
+
+Based on the two sample t-test, it tells us that the p-value (0.4187) is greater than 0.05. Therefore, we fail to reject the null hypothesis. There was no statistically significant difference in the average level of anxiety between people with and without acrophobia.
+
+We have a confidence interval of -3.21 and 7.62. This tells us that we are 95% confident that the true difference between the population mean falls between -3.21 and 7.62. 
+
+Overall, this indicate that there's no difference between the anxiety level of people with and without acrophobia. After the people with acrophobia were expose to their fear, their level of anxiety were at the same as the people without acrophobia.
+
+```{r}
+ggplot(vrtherapyDat, aes(pulse,fill=as.factor(acrophobia)))+geom_boxplot()+theme_classic()+ labs(x= "Pulse (mmHg)", y= "Frequency", title= "Heart Rate of People with and without Acrophobia")+ scale_fill_manual(name= "Acrophobia", values = c('lightgreen', 'springgreen4'))
+
+```
